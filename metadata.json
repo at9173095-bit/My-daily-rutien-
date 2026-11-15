@@ -1,0 +1,6 @@
+{
+  "name": "Daily Routine & Study Progress Tracker",
+  "description": "A single-file responsive dashboard to manage daily routine tasks, track study hours, and build a daily study streak with localStorage persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

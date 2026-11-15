@@ -1,0 +1,1922 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Routine &amp; Study Progress Tracker</title>
+    <meta
+      name="description"
+      content="A single-file responsive dashboard to manage daily routine tasks, track study hours, and build a daily study streak with localStorage persistence."
+    />
+    <meta property="og:title" content="Daily Routine & Study Progress Tracker" />
+    <meta
+      property="og:description"
+      content="A single-file responsive dashboard to manage daily routine tasks, track study hours, and build a daily study streak with localStorage persistence."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts: Plus Jakarta Sans, DM Sans, and JetBrains Mono (with clean system fallbacks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* =========================================================================
+         1. DESIGN TOKENS & THEME VARIABLES (60-30-10 Color Discipline)
+         ========================================================================= */
+      :root {
+        /* 60% Neutral Canvas */
+        --bg-canvas: #f8fafc;
+        /* 30% Structural Surfaces & Borders */
+        --bg-surface: #ffffff;
+        --bg-subtle: #f1f5f9;
+        --border-hairline: #e2e8f0;
+        --border-strong: #cbd5e1;
+
+        /* Typography Hierarchy */
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+
+        /* 10% Primary Accent & Semantic Status Colors */
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --accent-soft: rgba(37, 99, 235, 0.1);
+
+        --success: #16a34a;
+        --success-soft: rgba(22, 163, 74, 0.12);
+
+        --warning: #d97706;
+        --warning-soft: rgba(217, 119, 6, 0.12);
+
+        --danger: #dc2626;
+        --danger-hover: #b91c1c;
+        --danger-soft: rgba(220, 38, 38, 0.1);
+
+        --radius-lg: 12px;
+        --radius-md: 8px;
+        --radius-sm: 6px;
+        --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
+        --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      /* Dark Mode Tokens */
+      [data-theme="dark"] {
+        --bg-canvas: #0b1120;
+        --bg-surface: #111827;
+        --bg-subtle: #1e293b;
+        --border-hairline: #1f2937;
+        --border-strong: #334155;
+
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+
+        --success: #22c55e;
+        --success-soft: rgba(34, 197, 94, 0.15);
+
+        --warning: #f59e0b;
+        --warning-soft: rgba(245, 158, 11, 0.15);
+
+        --danger: #ef4444;
+        --danger-hover: #f87171;
+        --danger-soft: rgba(239, 68, 68, 0.15);
+
+        --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
+      }
+
+      /* =========================================================================
+         2. BASE RESET & TYPOGRAPHY
+         ========================================================================= */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        background-color: var(--bg-canvas);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+      }
+
+      [data-theme="dark"] body {
+        letter-spacing: 0.01em;
+      }
+
+      h1,
+      h2,
+      h3,
+      .brand-title {
+        font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        color: var(--text-primary);
+        text-wrap: balance;
+      }
+
+      .tabular-num {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      button,
+      input,
+      select {
+        font-family: inherit;
+        font-size: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+
+      /* =========================================================================
+         3. TOP NAVIGATION BAR (Strict 3-Zone Single-Row Contract)
+         ========================================================================= */
+      .top-header {
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .header-inner {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .brand-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+        color: var(--text-primary);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .nav-link {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: color var(--transition-fast);
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .theme-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 8px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-hairline);
+        background-color: var(--bg-subtle);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), border-color var(--transition-fast);
+      }
+
+      .theme-toggle-btn:hover {
+        border-color: var(--border-strong);
+      }
+
+      /* =========================================================================
+         4. MAIN CONTAINER & TOP PROGRESS OVERVIEW
+         ========================================================================= */
+      .app-container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 28px 24px 48px;
+      }
+
+      .progress-banner {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-subtle);
+        margin-bottom: 24px;
+      }
+
+      .progress-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .page-heading {
+        font-size: clamp(1.5rem, 2.5vw, 1.875rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+
+      .today-date-label {
+        margin: 4px 0 0;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+      }
+
+      .progress-metrics {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .progress-percentage {
+        font-size: 2rem;
+        font-weight: 600;
+        line-height: 1;
+        color: var(--text-primary);
+      }
+
+      .progress-fraction {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      .progress-track {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background-color: var(--bg-subtle);
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 100%;
+        border-radius: 999px;
+        background-color: var(--accent);
+        transform-origin: left center;
+        transform: scaleX(0);
+        transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+          background-color var(--transition-fast);
+      }
+
+      .progress-fill.is-complete {
+        background-color: var(--success);
+      }
+
+      /* =========================================================================
+         5. TWO-COLUMN WORKSPACE GRID
+         ========================================================================= */
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .surface-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-subtle);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .section-meta {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+      }
+
+      /* =========================================================================
+         6. TASK INPUT FORM & CATEGORY FILTER TABS
+         ========================================================================= */
+      .task-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 180px auto;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .text-input,
+      .select-input {
+        min-height: 44px;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-hairline);
+        background-color: var(--bg-canvas);
+        color: var(--text-primary);
+        transition: border-color var(--transition-fast), background-color var(--transition-fast);
+      }
+
+      .text-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .text-input:hover,
+      .select-input:hover {
+        border-color: var(--border-strong);
+      }
+
+      .btn-primary {
+        min-height: 44px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--radius-md);
+        background-color: var(--accent);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), transform var(--transition-fast);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--accent-hover);
+      }
+
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+
+      .btn-secondary {
+        min-height: 40px;
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-hairline);
+        background-color: var(--bg-subtle);
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), border-color var(--transition-fast);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        border-color: var(--border-strong);
+      }
+
+      .btn-secondary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn-danger-ghost {
+        min-height: 40px;
+        padding: 8px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-hairline);
+        background-color: transparent;
+        color: var(--danger);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), border-color var(--transition-fast);
+      }
+
+      .btn-danger-ghost:hover {
+        background-color: var(--danger-soft);
+        border-color: transparent;
+      }
+
+      .btn-danger-solid {
+        min-height: 40px;
+        padding: 8px 14px;
+        border-radius: var(--radius-md);
+        border: none;
+        background-color: var(--danger);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast);
+      }
+
+      .btn-danger-solid:hover {
+        background-color: var(--danger-hover);
+      }
+
+      /* Interactive Filter Bar */
+      .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        background-color: var(--bg-subtle);
+        border-radius: var(--radius-md);
+        overflow-x: auto;
+        margin-bottom: 16px;
+      }
+
+      .filter-tab {
+        min-height: 36px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background-color: transparent;
+        color: var(--text-secondary);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+      }
+
+      .filter-tab:hover {
+        color: var(--text-primary);
+      }
+
+      .filter-tab.is-active {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        font-weight: 600;
+        box-shadow: var(--shadow-subtle);
+      }
+
+      /* =========================================================================
+         7. TASK LIST ROWS (Unboxed Metadata, Clean Hairlines, 44px Hit Targets)
+         ========================================================================= */
+      .task-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .task-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 4px;
+        border-bottom: 1px solid var(--border-hairline);
+        transition: background-color var(--transition-fast);
+      }
+
+      .task-row:last-child {
+        border-bottom: none;
+      }
+
+      .task-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .task-checkbox-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        margin: -10px 0 -10px -8px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+
+      .task-checkbox {
+        position: absolute;
+        opacity: 0;
+        width: 44px;
+        height: 44px;
+        margin: 0;
+        cursor: pointer;
+      }
+
+      .checkbox-visual {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border-strong);
+        background-color: var(--bg-canvas);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        transition: background-color var(--transition-fast), border-color var(--transition-fast);
+      }
+
+      .task-checkbox:checked + .checkbox-visual {
+        background-color: var(--success);
+        border-color: var(--success);
+      }
+
+      .task-checkbox:focus-visible + .checkbox-visual {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .checkbox-visual svg {
+        width: 13px;
+        height: 13px;
+        opacity: 0;
+        transform: scale(0.75);
+        transition: opacity var(--transition-fast), transform var(--transition-fast);
+      }
+
+      .task-checkbox:checked + .checkbox-visual svg {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .task-text-block {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .task-title {
+        display: block;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        word-break: break-word;
+        transition: color var(--transition-fast), opacity var(--transition-fast);
+      }
+
+      .task-row.is-completed .task-title {
+        text-decoration: line-through;
+        color: var(--text-muted);
+      }
+
+      /* Zero-pill inline metadata with middot separator */
+      .task-metadata {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 2px;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+      }
+
+      .task-category-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .task-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: var(--radius-md);
+        background-color: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+      }
+
+      .task-delete-btn:hover {
+        background-color: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      /* Empty State */
+      .empty-state {
+        padding: 36px 16px;
+        text-align: center;
+        border-top: 1px solid var(--border-hairline);
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .empty-state-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 4px;
+      }
+
+      .empty-state-desc {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin: 0 0 16px;
+      }
+
+      /* Task Footer Actions & Inline Reset Confirmation */
+      .task-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-hairline);
+      }
+
+      .footer-actions-group {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .reset-confirm-bar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-hairline);
+        background-color: var(--bg-subtle);
+      }
+
+      .reset-confirm-bar.is-visible {
+        display: flex;
+      }
+
+      .reset-confirm-text {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      /* =========================================================================
+         8. RIGHT SIDEBAR: STUDY HOURS & DAILY STREAK
+         ========================================================================= */
+      .sidebar-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .stats-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding-bottom: 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .stat-block-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      .stat-block-value {
+        font-size: 1.625rem;
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--text-primary);
+      }
+
+      .stat-block-unit {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-left: 2px;
+      }
+
+      .hours-controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .hours-controls .btn-primary {
+        flex: 1;
+        min-width: 96px;
+      }
+
+      .helper-note {
+        margin: 12px 0 0;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+      }
+
+      /* Streak Display */
+      .streak-hero {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .streak-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--warning-soft);
+        color: var(--warning);
+        flex-shrink: 0;
+      }
+
+      .streak-icon-box.is-secured {
+        background-color: var(--success-soft);
+        color: var(--success);
+      }
+
+      .streak-count-value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        line-height: 1.1;
+        color: var(--text-primary);
+      }
+
+      .streak-status-text {
+        margin: 4px 0 0;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+      }
+
+      /* 7-Day Consistency Strip */
+      .week-strip-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .week-strip {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+
+      .day-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 4px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-hairline);
+        background-color: var(--bg-canvas);
+      }
+
+      .day-cell.is-active {
+        background-color: var(--success-soft);
+        border-color: var(--success);
+      }
+
+      .day-cell.is-today:not(.is-active) {
+        border-color: var(--accent);
+      }
+
+      .day-name {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .day-cell.is-active .day-name {
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .day-mark {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+      }
+
+      .day-cell.is-active .day-mark {
+        color: var(--success);
+      }
+
+      /* Inline Validation Message */
+      .form-feedback {
+        margin: -6px 0 14px;
+        font-size: 0.8125rem;
+        color: var(--danger);
+        min-height: 18px;
+      }
+
+      /* =========================================================================
+         9. RESPONSIVE BREAKPOINTS (Tablet & Mobile)
+         ========================================================================= */
+      @media (max-width: 900px) {
+        .workspace-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .header-inner {
+          padding: 12px 16px;
+          gap: 16px;
+        }
+
+        .header-nav {
+          display: none;
+        }
+
+        .app-container {
+          padding: 16px 16px 36px;
+        }
+
+        .progress-banner,
+        .surface-card {
+          padding: 18px 16px;
+        }
+
+        .task-form {
+          grid-template-columns: 1fr;
+        }
+
+        .task-footer {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .footer-actions-group {
+          justify-content: space-between;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Top Header: 3-zone single-row contract -->
+    <header class="top-header">
+      <div class="header-inner">
+        <a href="#progress-overview" class="brand-title">StudyTrack</a>
+
+        <nav class="header-nav" aria-label="Dashboard sections">
+          <a href="#progress-overview" class="nav-link">Progress</a>
+          <a href="#tasks-section" class="nav-link">Tasks</a>
+          <a href="#study-hours-section" class="nav-link">Study Hours</a>
+          <a href="#streak-section" class="nav-link">Daily Streak</a>
+        </nav>
+
+        <button
+          id="theme-toggle-btn"
+          type="button"
+          class="theme-toggle-btn"
+          aria-label="Toggle light or dark theme"
+        >
+          <span id="theme-icon" aria-hidden="true"></span>
+          <span id="theme-label">Dark Mode</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-container">
+      <!-- 1. Top Completion Progress Bar -->
+      <section
+        id="progress-overview"
+        class="progress-banner"
+        aria-labelledby="dashboard-heading"
+      >
+        <div class="progress-header">
+          <div>
+            <h1 id="dashboard-heading" class="page-heading">
+              Daily Routine &amp; Study Progress
+            </h1>
+            <p id="today-date-display" class="today-date-label"></p>
+          </div>
+
+          <div class="progress-metrics">
+            <span id="progress-percent" class="progress-percentage tabular-num">0%</span>
+            <span id="progress-fraction" class="progress-fraction tabular-num">0 of 0 tasks</span>
+          </div>
+        </div>
+
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          aria-labelledby="dashboard-heading"
+          id="progress-bar-role"
+        >
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </section>
+
+      <!-- 2. Main Dashboard Workspace -->
+      <div class="workspace-grid">
+        <!-- Left Column: Daily Routine & Study Tasks -->
+        <section id="tasks-section" class="surface-card" aria-labelledby="tasks-heading">
+          <div class="section-header">
+            <h2 id="tasks-heading" class="section-title">Daily Routine &amp; Study Tasks</h2>
+            <span id="visible-count-label" class="section-meta tabular-num">0 tasks</span>
+          </div>
+
+          <!-- Add Task Form -->
+          <form id="task-form" class="task-form" novalidate>
+            <input
+              id="task-title-input"
+              type="text"
+              class="text-input"
+              placeholder="Add a task (e.g., Practice Spring Boot REST APIs)"
+              maxlength="120"
+              aria-label="New task title"
+              required
+            />
+
+            <select
+              id="task-category-select"
+              class="select-input"
+              aria-label="Task category"
+            >
+              <option value="BCA Exam Prep">BCA Exam Prep</option>
+              <option value="Java Backend">Java Backend</option>
+              <option value="Frontend">Frontend</option>
+              <option value="Job/Daily Routine">Job/Daily Routine</option>
+            </select>
+
+            <button type="submit" class="btn-primary">Add Task</button>
+          </form>
+
+          <p id="form-feedback" class="form-feedback" role="alert" aria-live="polite"></p>
+
+          <!-- Category Filter Tabs -->
+          <div class="filter-bar" role="tablist" aria-label="Filter tasks by category">
+            <button type="button" class="filter-tab is-active" data-filter="All">All</button>
+            <button type="button" class="filter-tab" data-filter="BCA Exam Prep">
+              BCA Exam Prep
+            </button>
+            <button type="button" class="filter-tab" data-filter="Java Backend">
+              Java Backend
+            </button>
+            <button type="button" class="filter-tab" data-filter="Frontend">Frontend</button>
+            <button type="button" class="filter-tab" data-filter="Job/Daily Routine">
+              Job/Daily Routine
+            </button>
+          </div>
+
+          <!-- Task List -->
+          <ul id="task-list" class="task-list" aria-live="polite"></ul>
+
+          <!-- Empty State (shown when there are no matching tasks) -->
+          <div id="empty-state" class="empty-state" hidden>
+            <p id="empty-state-title" class="empty-state-title">No tasks in this view</p>
+            <p id="empty-state-desc" class="empty-state-desc">
+              Add a task above to start tracking today's routine.
+            </p>
+            <button id="empty-action-btn" type="button" class="btn-secondary">
+              Add Your First Task
+            </button>
+          </div>
+
+          <!-- Footer Controls -->
+          <div class="task-footer">
+            <button id="clear-completed-btn" type="button" class="btn-secondary">
+              Clear Completed
+            </button>
+
+            <button id="reset-day-btn" type="button" class="btn-danger-ghost">
+              Reset Today's Tasks
+            </button>
+          </div>
+
+          <!-- Inline Reset Confirmation (avoids browser popup dialogs) -->
+          <div id="reset-confirm-bar" class="reset-confirm-bar" role="region" aria-label="Confirm daily reset">
+            <p class="reset-confirm-text">
+              Start fresh for tomorrow? This unchecks all tasks and resets today's study hours to 0, while keeping your total hours and streak.
+            </p>
+            <div class="footer-actions-group">
+              <button id="cancel-reset-btn" type="button" class="btn-secondary">Cancel</button>
+              <button id="confirm-reset-btn" type="button" class="btn-danger-solid">
+                Confirm Reset
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: Study Hours & Streak Counter -->
+        <aside class="sidebar-stack">
+          <!-- Study Hours Logger -->
+          <section
+            id="study-hours-section"
+            class="surface-card"
+            aria-labelledby="study-hours-heading"
+          >
+            <div class="section-header">
+              <h2 id="study-hours-heading" class="section-title">Study Hours</h2>
+              <span class="section-meta">Daily &amp; Lifetime</span>
+            </div>
+
+            <div class="stats-split">
+              <div>
+                <div class="stat-block-label">Today</div>
+                <div class="stat-block-value tabular-num">
+                  <span id="today-hours-value">0.0</span><span class="stat-block-unit">hrs</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="stat-block-label">Total Studied</div>
+                <div class="stat-block-value tabular-num">
+                  <span id="total-hours-value">0.0</span><span class="stat-block-unit">hrs</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hours-controls">
+              <button id="add-half-hour-btn" type="button" class="btn-primary">
+                +0.5 hr
+              </button>
+              <button id="add-one-hour-btn" type="button" class="btn-primary">
+                +1 hr
+              </button>
+              <button
+                id="undo-half-hour-btn"
+                type="button"
+                class="btn-secondary"
+                aria-label="Subtract 0.5 hour from today"
+              >
+                -0.5 hr
+              </button>
+            </div>
+
+            <p class="helper-note">
+              Log focused study blocks as you finish them. Use -0.5 hr to fix a misclick.
+            </p>
+          </section>
+
+          <!-- Daily Streak Tracker -->
+          <section
+            id="streak-section"
+            class="surface-card"
+            aria-labelledby="streak-heading"
+          >
+            <div class="section-header">
+              <h2 id="streak-heading" class="section-title">Daily Streak</h2>
+              <span id="streak-badge-text" class="section-meta">Keep going</span>
+            </div>
+
+            <div class="streak-hero">
+              <div id="streak-icon-box" class="streak-icon-box" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"
+                  />
+                </svg>
+              </div>
+
+              <div>
+                <div class="streak-count-value tabular-num">
+                  <span id="streak-count-value">0</span>
+                  <span id="streak-unit-label">Days</span>
+                </div>
+                <p id="streak-status-text" class="streak-status-text">
+                  Complete at least 1 task today to start your streak.
+                </p>
+              </div>
+            </div>
+
+            <div class="week-strip-label">Last 7 Days Activity</div>
+            <div id="week-strip" class="week-strip" aria-label="Last 7 days study streak"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      /* =========================================================================
+         1. CONFIGURATION & APPLICATION STATE
+         -------------------------------------------------------------------------
+         Beginner Note for Spring Boot Migration:
+         Right now, all data lives in the `appState` object and is saved to the
+         browser's `localStorage`. When you build your Java Spring Boot backend,
+         this `appState` structure maps cleanly to JSON returned by REST APIs:
+           - GET    /api/tasks        -> returns appState.tasks
+           - POST   /api/tasks        -> creates a new task
+           - PATCH  /api/tasks/{id}   -> toggles task.completed
+           - DELETE /api/tasks/{id}   -> deletes a task
+           - POST   /api/study-hours  -> adds hours to todayHours & totalHours
+         ========================================================================= */
+      const STORAGE_KEY = "studyTrackDashboardState_v1";
+      const THEME_STORAGE_KEY = "studyTrackTheme_v1";
+
+      // Default starter tasks shown only on a user's very first visit
+      const STARTER_TASKS = [
+        {
+          id: "starter-1",
+          title: "Revise Java OOP, Collections, and Spring Boot basics",
+          category: "Java Backend",
+          completed: false,
+          createdAt: "Morning",
+        },
+        {
+          id: "starter-2",
+          title: "Solve 2 BCA Data Structures & DBMS past exam questions",
+          category: "BCA Exam Prep",
+          completed: false,
+          createdAt: "Afternoon",
+        },
+        {
+          id: "starter-3",
+          title: "Build responsive layout & practice JavaScript DOM events",
+          category: "Frontend",
+          completed: false,
+          createdAt: "Evening",
+        },
+        {
+          id: "starter-4",
+          title: "Review daily goals & update job application checklist",
+          category: "Job/Daily Routine",
+          completed: false,
+          createdAt: "Routine",
+        },
+      ];
+
+      // Central in-memory state object for the whole page
+      let appState = {
+        tasks: [],
+        todayHours: 0,
+        totalHours: 0,
+        streakCount: 0,
+        lastCompletedDate: null, // Format: "YYYY-MM-DD"
+        previousStreakBeforeToday: 0, // Used if user unchecks today's only completed task
+        previousLastDateBeforeToday: null,
+        activeDates: [], // Array of "YYYY-MM-DD" strings where >= 1 task was completed
+      };
+
+      // Currently selected category filter tab ("All" or one of the 4 categories)
+      let activeFilter = "All";
+
+      /* =========================================================================
+         2. DATE HELPER FUNCTIONS
+         ========================================================================= */
+
+      /**
+       * Returns a local calendar date key in "YYYY-MM-DD" format.
+       * We use local date parts instead of UTC `.toISOString()` so midnight
+       * matches the user's real local timezone.
+       */
+      function getDateKey(dateObj = new Date()) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      /**
+       * Returns today's date key ("YYYY-MM-DD").
+       */
+      function getTodayKey() {
+        return getDateKey(new Date());
+      }
+
+      /**
+       * Returns yesterday's date key ("YYYY-MM-DD") to check streak continuity.
+       */
+      function getYesterdayKey() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return getDateKey(yesterday);
+      }
+
+      /**
+       * Formats today's date nicely for the header (e.g., "Sunday, November 15, 2026").
+       */
+      function formatTodayDisplay() {
+        return new Date().toLocaleDateString(undefined, {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      }
+
+      /**
+       * Formats the current local time (e.g., "07:20 AM") when adding a task.
+       */
+      function getCurrentTimeLabel() {
+        return new Date().toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      /* =========================================================================
+         3. LOCALSTORAGE PERSISTENCE FUNCTIONS
+         ========================================================================= */
+
+      /**
+       * Loads saved dashboard state from localStorage.
+       * If nothing is saved yet (first visit), loads starter tasks and saves them.
+       * Note: Later, you can replace this with `await fetch('/api/dashboard')`.
+       */
+      function loadState() {
+        try {
+          const rawData = localStorage.getItem(STORAGE_KEY);
+
+          if (!rawData) {
+            appState.tasks = STARTER_TASKS.map((task) => ({ ...task }));
+            saveState();
+            return;
+          }
+
+          const parsed = JSON.parse(rawData);
+          appState = {
+            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+            todayHours: Number(parsed.todayHours) || 0,
+            totalHours: Number(parsed.totalHours) || 0,
+            streakCount: Number(parsed.streakCount) || 0,
+            lastCompletedDate: parsed.lastCompletedDate || null,
+            previousStreakBeforeToday: Number(parsed.previousStreakBeforeToday) || 0,
+            previousLastDateBeforeToday: parsed.previousLastDateBeforeToday || null,
+            activeDates: Array.isArray(parsed.activeDates) ? parsed.activeDates : [],
+          };
+
+          validateStreakOnLoad();
+        } catch (error) {
+          console.error("Could not load saved state from localStorage:", error);
+        }
+      }
+
+      /**
+       * Saves the current `appState` object to localStorage as a JSON string.
+       */
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        } catch (error) {
+          console.error("Could not save state to localStorage:", error);
+        }
+      }
+
+      /**
+       * Checks whether the saved streak is still alive when the page opens.
+       * If the last completed date was neither today nor yesterday, the streak expired.
+       */
+      function validateStreakOnLoad() {
+        const today = getTodayKey();
+        const yesterday = getYesterdayKey();
+
+        if (
+          appState.lastCompletedDate &&
+          appState.lastCompletedDate !== today &&
+          appState.lastCompletedDate !== yesterday
+        ) {
+          appState.streakCount = 0;
+          saveState();
+        }
+      }
+
+      /* =========================================================================
+         4. TASK MANAGEMENT FUNCTIONS
+         ========================================================================= */
+
+      /**
+       * Creates a new task object and adds it to the top of `appState.tasks`.
+       * Later: Replace with `POST /api/tasks`.
+       */
+      function addTask(title, category) {
+        const cleanTitle = title.trim();
+        const feedbackEl = document.getElementById("form-feedback");
+
+        if (!cleanTitle) {
+          feedbackEl.textContent = "Please enter a task description before adding.";
+          return false;
+        }
+
+        feedbackEl.textContent = "";
+
+        const newTask = {
+          id: "task-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+          title: cleanTitle,
+          category: category,
+          completed: false,
+          createdAt: getCurrentTimeLabel(),
+        };
+
+        appState.tasks.unshift(newTask);
+        saveState();
+        renderAll();
+        return true;
+      }
+
+      /**
+       * Toggles a task's `completed` boolean (true <-> false) and updates the streak.
+       * Later: Replace with `PATCH /api/tasks/{id}`.
+       */
+      function toggleTaskCompletion(taskId) {
+        const targetTask = appState.tasks.find((task) => task.id === taskId);
+        if (!targetTask) return;
+
+        targetTask.completed = !targetTask.completed;
+
+        if (targetTask.completed) {
+          updateStreakOnTaskComplete();
+        } else {
+          recheckStreakIfNoTasksCompletedToday();
+        }
+
+        saveState();
+        renderAll();
+      }
+
+      /**
+       * Removes a single task from `appState.tasks` by its unique ID.
+       * Later: Replace with `DELETE /api/tasks/{id}`.
+       */
+      function deleteTask(taskId) {
+        appState.tasks = appState.tasks.filter((task) => task.id !== taskId);
+        saveState();
+        renderAll();
+      }
+
+      /**
+       * Deletes all tasks currently marked as completed.
+       */
+      function clearCompletedTasks() {
+        appState.tasks = appState.tasks.filter((task) => !task.completed);
+        saveState();
+        renderAll();
+      }
+
+      /**
+       * Resets today's progress for the next day:
+       * - Unchecks all tasks so your daily routine is ready again tomorrow
+       * - Resets today's study hours to 0 (while keeping Total Hours & Streak safe)
+       */
+      function resetTodaysTasks() {
+        appState.tasks = appState.tasks.map((task) => ({
+          ...task,
+          completed: false,
+        }));
+        appState.todayHours = 0;
+
+        // Hide the inline confirmation panel
+        document.getElementById("reset-confirm-bar").classList.remove("is-visible");
+
+        saveState();
+        renderAll();
+      }
+
+      /**
+       * Updates the active category filter and re-renders the task list.
+       */
+      function setCategoryFilter(categoryName) {
+        activeFilter = categoryName;
+
+        const filterButtons = document.querySelectorAll(".filter-tab");
+        filterButtons.forEach((btn) => {
+          const isMatch = btn.getAttribute("data-filter") === categoryName;
+          btn.classList.toggle("is-active", isMatch);
+        });
+
+        renderTaskList();
+      }
+
+      /* =========================================================================
+         5. STUDY HOURS & DAILY STREAK FUNCTIONS
+         ========================================================================= */
+
+      /**
+       * Adds (or subtracts) study hours for today and updates total lifetime hours.
+       * Uses `Math.round(... * 10) / 10` to avoid JavaScript floating-point quirks
+       * like 0.1 + 0.2 = 0.30000000000000004.
+       */
+      function logStudyHours(deltaHours) {
+        if (deltaHours < 0 && appState.todayHours <= 0) {
+          return;
+        }
+
+        const actualDelta =
+          deltaHours < 0 ? -Math.min(Math.abs(deltaHours), appState.todayHours) : deltaHours;
+
+        appState.todayHours = Math.max(
+          0,
+          Math.round((appState.todayHours + actualDelta) * 10) / 10
+        );
+        appState.totalHours = Math.max(
+          0,
+          Math.round((appState.totalHours + actualDelta) * 10) / 10
+        );
+
+        saveState();
+        renderStudyStats();
+      }
+
+      /**
+       * Increments the Daily Streak when the user completes at least one task today.
+       * Prevents double-counting if multiple tasks are completed on the same day.
+       */
+      function updateStreakOnTaskComplete() {
+        const today = getTodayKey();
+        const yesterday = getYesterdayKey();
+
+        // Already counted today — nothing more to increment
+        if (appState.lastCompletedDate === today) {
+          return;
+        }
+
+        // Remember previous streak values in case the user immediately unchecks the task
+        appState.previousStreakBeforeToday = appState.streakCount;
+        appState.previousLastDateBeforeToday = appState.lastCompletedDate;
+
+        if (appState.lastCompletedDate === yesterday) {
+          appState.streakCount += 1;
+        } else {
+          appState.streakCount = 1;
+        }
+
+        appState.lastCompletedDate = today;
+
+        if (!appState.activeDates.includes(today)) {
+          appState.activeDates.push(today);
+        }
+      }
+
+      /**
+       * If the user unchecks all tasks today (e.g. accidental click), reverts
+       * today's streak increment so the counter stays honest.
+       */
+      function recheckStreakIfNoTasksCompletedToday() {
+        const today = getTodayKey();
+        const completedCount = appState.tasks.filter((task) => task.completed).length;
+
+        if (completedCount === 0 && appState.lastCompletedDate === today) {
+          appState.streakCount = appState.previousStreakBeforeToday;
+          appState.lastCompletedDate = appState.previousLastDateBeforeToday;
+          appState.activeDates = appState.activeDates.filter((date) => date !== today);
+        }
+      }
+
+      /* =========================================================================
+         6. DOM RENDERING FUNCTIONS
+         ========================================================================= */
+
+      /**
+       * Master render function that updates every visual section of the dashboard.
+       */
+      function renderAll() {
+        renderProgressBar();
+        renderTaskList();
+        renderStudyStats();
+        renderStreakSection();
+      }
+
+      /**
+       * Calculates today's task completion percentage and updates the top progress bar.
+       */
+      function renderProgressBar() {
+        const totalCount = appState.tasks.length;
+        const completedCount = appState.tasks.filter((task) => task.completed).length;
+        const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+        document.getElementById("progress-percent").textContent = `${percentage}%`;
+        document.getElementById("progress-fraction").textContent = `${completedCount} of ${totalCount} ${
+          totalCount === 1 ? "task" : "tasks"
+        }`;
+
+        const progressRole = document.getElementById("progress-bar-role");
+        progressRole.setAttribute("aria-valuenow", String(percentage));
+
+        const progressFill = document.getElementById("progress-fill");
+        progressFill.style.transform = `scaleX(${percentage / 100})`;
+        progressFill.classList.toggle("is-complete", percentage === 100 && totalCount > 0);
+      }
+
+      /**
+       * Renders the filtered list of tasks (or the empty state if none match).
+       */
+      function renderTaskList() {
+        const listEl = document.getElementById("task-list");
+        const emptyStateEl = document.getElementById("empty-state");
+        const emptyTitleEl = document.getElementById("empty-state-title");
+        const emptyDescEl = document.getElementById("empty-state-desc");
+        const emptyActionBtn = document.getElementById("empty-action-btn");
+        const visibleCountEl = document.getElementById("visible-count-label");
+        const clearCompletedBtn = document.getElementById("clear-completed-btn");
+
+        const filteredTasks =
+          activeFilter === "All"
+            ? appState.tasks
+            : appState.tasks.filter((task) => task.category === activeFilter);
+
+        visibleCountEl.textContent = `${filteredTasks.length} ${
+          filteredTasks.length === 1 ? "task" : "tasks"
+        }`;
+
+        const hasCompletedTasks = appState.tasks.some((task) => task.completed);
+        clearCompletedBtn.disabled = !hasCompletedTasks;
+
+        // Clear existing DOM nodes cleanly before re-rendering
+        listEl.innerHTML = "";
+
+        if (filteredTasks.length === 0) {
+          emptyStateEl.hidden = false;
+
+          if (appState.tasks.length === 0) {
+            emptyTitleEl.textContent = "Your task list is empty";
+            emptyDescEl.textContent = "Add a study goal or routine task above to get started.";
+            emptyActionBtn.textContent = "Focus Task Input";
+          } else {
+            emptyTitleEl.textContent = `No tasks in "${activeFilter}"`;
+            emptyDescEl.textContent = "Add a task in this category or switch back to All.";
+            emptyActionBtn.textContent = "Show All Tasks";
+          }
+          return;
+        }
+
+        emptyStateEl.hidden = true;
+
+        filteredTasks.forEach((task) => {
+          const li = document.createElement("li");
+          li.className = `task-row${task.completed ? " is-completed" : ""}`;
+
+          // Left side: checkbox + task title & metadata
+          const mainDiv = document.createElement("div");
+          mainDiv.className = "task-main";
+
+          const checkboxLabel = document.createElement("label");
+          checkboxLabel.className = "task-checkbox-wrap";
+          checkboxLabel.setAttribute("aria-label", `Mark "${task.title}" as completed`);
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "task-checkbox";
+          checkbox.checked = task.completed;
+          checkbox.addEventListener("change", () => toggleTaskCompletion(task.id));
+
+          const checkboxVisual = document.createElement("span");
+          checkboxVisual.className = "checkbox-visual";
+          checkboxVisual.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+
+          checkboxLabel.appendChild(checkbox);
+          checkboxLabel.appendChild(checkboxVisual);
+
+          const textBlock = document.createElement("div");
+          textBlock.className = "task-text-block";
+
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "task-title";
+          titleSpan.textContent = task.title;
+
+          const metaDiv = document.createElement("div");
+          metaDiv.className = "task-metadata";
+
+          const categorySpan = document.createElement("span");
+          categorySpan.className = "task-category-label";
+          categorySpan.textContent = task.category;
+
+          const separatorSpan = document.createElement("span");
+          separatorSpan.setAttribute("aria-hidden", "true");
+          separatorSpan.textContent = "·";
+
+          const statusSpan = document.createElement("span");
+          statusSpan.textContent = task.completed ? "Completed" : `Added ${task.createdAt}`;
+
+          metaDiv.appendChild(categorySpan);
+          metaDiv.appendChild(separatorSpan);
+          metaDiv.appendChild(statusSpan);
+
+          textBlock.appendChild(titleSpan);
+          textBlock.appendChild(metaDiv);
+
+          mainDiv.appendChild(checkboxLabel);
+          mainDiv.appendChild(textBlock);
+
+          // Right side: delete button
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "task-delete-btn";
+          deleteBtn.setAttribute("aria-label", `Delete task "${task.title}"`);
+          deleteBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+          `;
+          deleteBtn.addEventListener("click", () => deleteTask(task.id));
+
+          li.appendChild(mainDiv);
+          li.appendChild(deleteBtn);
+          listEl.appendChild(li);
+        });
+      }
+
+      /**
+       * Renders today's logged study hours and total cumulative hours.
+       */
+      function renderStudyStats() {
+        document.getElementById("today-hours-value").textContent =
+          appState.todayHours.toFixed(1);
+        document.getElementById("total-hours-value").textContent =
+          appState.totalHours.toFixed(1);
+
+        document.getElementById("undo-half-hour-btn").disabled = appState.todayHours <= 0;
+      }
+
+      /**
+       * Renders the Daily Streak count, status text, and the 7-day activity strip.
+       */
+      function renderStreakSection() {
+        const today = getTodayKey();
+        const isTodaySecured = appState.activeDates.includes(today);
+
+        const streakCountEl = document.getElementById("streak-count-value");
+        const streakUnitEl = document.getElementById("streak-unit-label");
+        const streakStatusEl = document.getElementById("streak-status-text");
+        const streakBadgeEl = document.getElementById("streak-badge-text");
+        const streakIconBox = document.getElementById("streak-icon-box");
+
+        streakCountEl.textContent = String(appState.streakCount);
+        streakUnitEl.textContent = appState.streakCount === 1 ? "Day" : "Days";
+        streakIconBox.classList.toggle("is-secured", isTodaySecured);
+
+        if (isTodaySecured) {
+          streakBadgeEl.textContent = "Secured today";
+          streakStatusEl.textContent = "Great job — today's study streak is locked in.";
+        } else if (appState.streakCount > 0) {
+          streakBadgeEl.textContent = "Pending today";
+          streakStatusEl.textContent = "Complete at least 1 task today to extend your streak.";
+        } else {
+          streakBadgeEl.textContent = "Ready to start";
+          streakStatusEl.textContent = "Complete at least 1 task today to start your streak.";
+        }
+
+        // Render last 7 calendar days (from 6 days ago up to today)
+        const weekStripEl = document.getElementById("week-strip");
+        weekStripEl.innerHTML = "";
+
+        for (let offset = 6; offset >= 0; offset--) {
+          const dayDate = new Date();
+          dayDate.setDate(dayDate.getDate() - offset);
+
+          const dateKey = getDateKey(dayDate);
+          const dayShort = dayDate.toLocaleDateString(undefined, { weekday: "narrow" });
+          const fullLabel = dayDate.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          });
+          const isActive = appState.activeDates.includes(dateKey);
+          const isToday = offset === 0;
+
+          const cell = document.createElement("div");
+          cell.className = `day-cell${isActive ? " is-active" : ""}${isToday ? " is-today" : ""}`;
+          cell.title = `${fullLabel}: ${isActive ? "Completed" : "No task completed"}`;
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "day-name";
+          nameSpan.textContent = dayShort;
+
+          const markSpan = document.createElement("span");
+          markSpan.className = "day-mark";
+          markSpan.innerHTML = isActive
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle></svg>`;
+
+          cell.appendChild(nameSpan);
+          cell.appendChild(markSpan);
+          weekStripEl.appendChild(cell);
+        }
+      }
+
+      /* =========================================================================
+         7. LIGHT / DARK THEME HANDLING
+         ========================================================================= */
+
+      /**
+       * Applies either "light" or "dark" theme to the document and updates the toggle button.
+       */
+      function applyTheme(theme) {
+        const isDark = theme === "dark";
+        document.documentElement.setAttribute("data-theme", theme);
+
+        const iconEl = document.getElementById("theme-icon");
+        const labelEl = document.getElementById("theme-label");
+
+        if (isDark) {
+          labelEl.textContent = "Light Mode";
+          iconEl.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          `;
+        } else {
+          labelEl.textContent = "Dark Mode";
+          iconEl.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          `;
+        }
+
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch (error) {
+          console.error("Could not save theme preference:", error);
+        }
+      }
+
+      /**
+       * Determines initial theme from localStorage or OS preference.
+       */
+      function initTheme() {
+        let savedTheme = null;
+        try {
+          savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        } catch (error) {
+          savedTheme = null;
+        }
+
+        if (savedTheme === "dark" || savedTheme === "light") {
+          applyTheme(savedTheme);
+          return;
+        }
+
+        const prefersDark =
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        applyTheme(prefersDark ? "dark" : "light");
+      }
+
+      /* =========================================================================
+         8. EVENT LISTENERS & INITIALIZATION
+         ========================================================================= */
+
+      /**
+       * Attaches all DOM event listeners and initializes the dashboard on page load.
+       */
+      function initApp() {
+        initTheme();
+        loadState();
+
+        // Display formatted date in top progress banner
+        document.getElementById("today-date-display").textContent = formatTodayDisplay();
+
+        // Theme toggle click handler
+        document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+          const current = document.documentElement.getAttribute("data-theme");
+          applyTheme(current === "dark" ? "light" : "dark");
+        });
+
+        // Add task form submission
+        const taskForm = document.getElementById("task-form");
+        const taskInput = document.getElementById("task-title-input");
+        const categorySelect = document.getElementById("task-category-select");
+
+        taskForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const wasAdded = addTask(taskInput.value, categorySelect.value);
+          if (wasAdded) {
+            taskInput.value = "";
+            taskInput.focus();
+          }
+        });
+
+        // Clear validation message as soon as user starts typing
+        taskInput.addEventListener("input", () => {
+          document.getElementById("form-feedback").textContent = "";
+        });
+
+        // Category filter tab clicks
+        document.querySelectorAll(".filter-tab").forEach((tabBtn) => {
+          tabBtn.addEventListener("click", () => {
+            setCategoryFilter(tabBtn.getAttribute("data-filter"));
+          });
+        });
+
+        // Empty state helper button
+        document.getElementById("empty-action-btn").addEventListener("click", () => {
+          if (appState.tasks.length === 0) {
+            taskInput.focus();
+          } else {
+            setCategoryFilter("All");
+          }
+        });
+
+        // Clear completed tasks button
+        document
+          .getElementById("clear-completed-btn")
+          .addEventListener("click", clearCompletedTasks);
+
+        // Inline two-step Reset Today's Tasks flow
+        const resetConfirmBar = document.getElementById("reset-confirm-bar");
+        document.getElementById("reset-day-btn").addEventListener("click", () => {
+          resetConfirmBar.classList.toggle("is-visible");
+        });
+        document.getElementById("cancel-reset-btn").addEventListener("click", () => {
+          resetConfirmBar.classList.remove("is-visible");
+        });
+        document.getElementById("confirm-reset-btn").addEventListener("click", resetTodaysTasks);
+
+        // Study hours quick-log buttons
+        document
+          .getElementById("add-half-hour-btn")
+          .addEventListener("click", () => logStudyHours(0.5));
+        document
+          .getElementById("add-one-hour-btn")
+          .addEventListener("click", () => logStudyHours(1.0));
+        document
+          .getElementById("undo-half-hour-btn")
+          .addEventListener("click", () => logStudyHours(-0.5));
+
+        // Initial full render
+        renderAll();
+      }
+
+      // Run initApp once the HTML document is fully parsed
+      document.addEventListener("DOMContentLoaded", initApp);
+    </script>
+  </body>
+</html>
